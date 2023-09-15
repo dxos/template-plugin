@@ -1,0 +1,53 @@
+{
+  "name": "dxos-templates",
+  "version": "0.1.0",
+  "description": "dxos-templates - a DXOS application",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "deploy": "dx app publish",
+    "preview": "vite preview",
+    "serve": "vite",
+    "prebuild": "dxtype src/proto/schema.proto src/proto/gen/schema.ts"
+  },
+  "dependencies": {
+    "@braneframe/plugin-client": "0.1.58-main.28491f9",
+    "@braneframe/plugin-graph": "0.1.58-main.28491f9",
+    "@braneframe/plugin-error": "0.1.58-main.28491f9",
+    "@braneframe/plugin-intent": "0.1.58-main.28491f9",
+    "@braneframe/plugin-space": "0.1.58-main.28491f9",
+    "@braneframe/plugin-splitview": "0.1.58-main.28491f9",
+    "@braneframe/plugin-stack": "0.1.58-main.28491f9",
+    "@braneframe/plugin-theme": "0.1.58-main.28491f9",
+    "@braneframe/plugin-treeview": "0.1.58-main.28491f9",
+    "@braneframe/plugin-url-sync": "0.1.58-main.28491f9",
+    "@dxos/echo-schema": "0.1.58-main.28491f9",
+    "@dxos/react-surface": "0.1.58-main.28491f9",
+    "@dxos/aurora": "0.1.58-main.28491f9",
+    "@braneframe/types": "0.1.58-main.28491f9",
+    "@dxos/client": "0.1.58-main.28491f9",
+    "@dxos/config": "0.1.58-main.28491f9",
+    "@dxos/react-appkit": "0.1.58-main.28491f9",
+    "@dxos/react-client": "0.1.58-main.28491f9",
+    "@dxos/vault": "0.1.58-main.28491f9",
+    "@phosphor-icons/react": "^2.0.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.4.0"
+  },
+  "devDependencies": {
+    "@dxos/aurora-theme": "0.1.58-main.28491f9",
+    "@dxos/cli": "0.1.58-main.28491f9",
+    "@types/node": "^18.11.9",
+    "@types/react": "^18.0.21",
+    "@types/react-dom": "^18.0.6",
+    "@vitejs/plugin-react": "^3.0.1",
+    "autoprefixer": "^10.4.12",
+    "postcss": "^8.4.21",
+    "tailwindcss": "~3.2.7",
+    "typescript": "^5.0.4",
+    "vite": "^4.3.9",
+    "vite-plugin-pwa": "^0.14.1",
+    "workbox-window": "^6.5.4"
+  }
+}
