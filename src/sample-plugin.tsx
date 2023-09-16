@@ -1,33 +1,34 @@
-//Base Plugins could have:
+//
+// Copyright 2023 DXOS.org
+//
+
+// Base Plugins could have:
 // - Adding an object to the graph
 // - Providing a component to a surface
 // - Throwing an intent
 // - Handling an intent
 // - could have other functionality in it, just commented out with no additional comments to explain how it works
 
-import { Graph, GraphProvides } from "@braneframe/plugin-graph";
-import { IntentProvides } from "@braneframe/plugin-intent";
-import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
-import { TranslationsProvides } from "@braneframe/plugin-theme";
-import { TreeViewAction } from "@braneframe/plugin-treeview";
-import { Button } from "@dxos/aurora";
-import { Expando, Space, SpaceProxy, TypedObject } from "@dxos/client/echo";
-import { PluginDefinition } from "@dxos/react-surface";
-import { Palette, Plus } from "@phosphor-icons/react";
-import React, { FC } from "react";
+// TODO(burdon): Remove all aurora deps.
+import { Graph, GraphProvides } from '@braneframe/plugin-graph';
+import { IntentProvides } from '@braneframe/plugin-intent';
+import { GraphNodeAdapter, SpaceAction } from '@braneframe/plugin-space';
+import { TranslationsProvides } from '@braneframe/plugin-theme'; // TODO(burdon): Remove.
+import { TreeViewAction } from '@braneframe/plugin-treeview'; // TODO(burdon): Remove/simplify.
+import { Expando, Space, SpaceProxy, TypedObject } from '@dxos/client/echo';
+import { PluginDefinition } from '@dxos/react-surface';
+import { Palette, Plus } from '@phosphor-icons/react';
+import React, { FC } from 'react';
 
-type MyPluginProvides = GraphProvides & IntentProvides & TranslationsProvides;
+const PLUGIN_ID = 'sample-plugin';
 
-const PLUGIN_ID = "color-plugin";
-
-// prettier-ignore
-const niceColors = [ "royalblue", "skyblue", "lightblue", "deepskyblue", "cadetblue", "palevioletred", "orchid", "mediumorchid", "violet", "mediumpurple", "rebeccapurple", "mediumseagreen", "seagreen", "limegreen", "palegreen", "springgreen", "darkseagreen", "olive", "darkolivegreen", "goldenrod", "darkgoldenrod", "chocolate", "saddlebrown", "firebrick", "tomato", ];
+// TODO(burdon): Convert to chess app/plugin.
+const niceColors = [ 'royalblue', 'skyblue', 'lightblue', 'deepskyblue', 'cadetblue', 'palevioletred', 'orchid', 'mediumorchid', 'violet', 'mediumpurple', 'rebeccapurple', 'mediumseagreen', 'seagreen', 'limegreen', 'palegreen', 'springgreen', 'darkseagreen', 'olive', 'darkolivegreen', 'goldenrod', 'darkgoldenrod', 'chocolate', 'saddlebrown', 'firebrick', 'tomato', ];
 const getRandomColor = () => {
   return niceColors[Math.floor(Math.random() * niceColors.length)];
 };
 
-// prettier-ignore
-const positiveExclamations = [ "Fantastic!", "Well done!", "Great job!", "Outstanding!", "Impressive!", "Bravo!", "Excellent!", "Superb!", "Amazing!", "Incredible!", ];
+const positiveExclamations = [ 'Fantastic!', 'Well done!', 'Great job!', 'Outstanding!', 'Impressive!', 'Bravo!', 'Excellent!', 'Superb!', 'Amazing!', 'Incredible!', ];
 const getPositiveExclamation = () => {
   return positiveExclamations[
     Math.floor(Math.random() * positiveExclamations.length)
@@ -52,7 +53,7 @@ export const objectToGraphNode = (
     data: object,
     properties: {
       index: object.meta && object.meta.index ? object.meta.index : index,
-      persistenceClass: "spaceObject",
+      persistenceClass: 'spaceObject',
     },
   });
 
@@ -69,26 +70,28 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
     <div
       style={{
         backgroundColor: data.color,
-        height: "100vh",
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        height: '100vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
-      <div style={{ textAlign: "center" }}>
-        {data.exclaim && <p style={{ fontSize: "10vw" }}>{data.exclaim}</p>}
-        <Button onClick={() => changeColor(data)}>Roll this color!</Button>
+      <div style={{ textAlign: 'center' }}>
+        {data.exclaim && <p style={{ fontSize: '10vw' }}>{data.exclaim}</p>}
+        <button onClick={() => changeColor(data)}>Test</button>
       </div>
     </div>
   );
 };
 
 const isColor = (object: TypedObject): boolean => {
-  return object.type === "color" && typeof object.color === "string";
+  return object.type === 'color' && typeof object.color === 'string';
 };
 
-export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
+type SamplePluginProvides = GraphProvides & IntentProvides & TranslationsProvides;
+
+export const SamplePlugin = (): PluginDefinition<SamplePluginProvides> => {
   const adapter = new GraphNodeAdapter({
     filter: (object: Expando) => isColor(object),
     adapter: objectToGraphNode,
@@ -104,12 +107,12 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
     provides: {
       translations: [
         {
-          "en-US": {
+          'en-US': {
             [PLUGIN_ID]: {
-              "create object label": "Create a Color",
-              "color title placeholder": "Color",
-              "delete object label": "Delete Color",
-              "rename object label": "Rename Color",
+              'create object label': 'Create a Color',
+              'color title placeholder': 'Color',
+              'delete object label': 'Delete Color',
+              'rename object label': 'Rename Color',
             },
           },
         },
@@ -124,11 +127,11 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
 
           parent.addAction({
             id: `${PLUGIN_ID}/create`,
-            label: ["create object label", { ns: PLUGIN_ID }],
+            label: ['create object label', { ns: PLUGIN_ID }],
             icon: (props) => <Plus {...props} />,
             properties: {
-              testId: "spacePlugin.createDocument",
-              disposition: "toolbar",
+              testId: 'spacePlugin.createDocument',
+              disposition: 'toolbar',
             },
             intent: [
               {
@@ -149,19 +152,19 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
         },
       },
       component: (data, role) => {
-        if (!data || typeof data !== "object") {
+        if (!data || typeof data !== 'object') {
           return null;
         }
 
         switch (role) {
-          case "main": {
+          case 'main': {
             if (isColor(data)) {
               return ColorMain;
             }
             break;
           }
           // Waiting on universal drag-n-drop support!
-          // case "section": {
+          // case 'section': {
           //   if (isColor(data)) {
           //     return () => <div>Color Section</div>;
           //   }
@@ -177,7 +180,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
             case PluginAction.CREATE:
               return {
                 object: new Expando({
-                  type: "color",
+                  type: 'color',
                   color: getRandomColor(),
                   exclaim: getPositiveExclamation(),
                 }),

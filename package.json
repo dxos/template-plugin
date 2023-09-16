@@ -23,7 +23,6 @@
     "@braneframe/plugin-url-sync": "0.1.58-main.28491f9",
     "@dxos/echo-schema": "0.1.58-main.28491f9",
     "@dxos/react-surface": "0.1.58-main.28491f9",
-    "@dxos/aurora": "0.1.58-main.28491f9",
     "@braneframe/types": "0.1.58-main.28491f9",
     "@dxos/client": "0.1.58-main.28491f9",
     "@dxos/config": "0.1.58-main.28491f9",
@@ -36,7 +35,6 @@
     "react-router-dom": "^6.4.0"
   },
   "devDependencies": {
-    "@dxos/aurora-theme": "0.1.58-main.28491f9",
     "@dxos/cli": "0.1.58-main.28491f9",
     "@types/node": "^18.11.9",
     "@types/react": "^18.0.21",
