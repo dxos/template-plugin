@@ -7,18 +7,21 @@
 
 import { Graph, GraphProvides } from "@braneframe/plugin-graph";
 import { IntentProvides } from "@braneframe/plugin-intent";
-import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
+// import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
 import { TranslationsProvides } from "@braneframe/plugin-theme";
 import { TreeViewAction } from "@braneframe/plugin-treeview";
 import { Button } from "@dxos/aurora";
-import { Expando, Space, SpaceProxy, TypedObject } from "@dxos/client/echo";
+// import { Expando, Space, SpaceProxy, TypedObject, isTypedObject } from "@dxos/client/echo";
 import { PluginDefinition } from "@dxos/react-surface";
 import { Palette, Plus } from "@phosphor-icons/react";
+import { effect } from "@preact/signals-react";
+import { deepSignal } from "deepsignal/react";
 import React, { FC } from "react";
 
 type MyPluginProvides = GraphProvides & IntentProvides & TranslationsProvides;
 
-const PLUGIN_ID = "color-plugin";
+const PLUGIN_ID = "example.com/plugin/color";
+const COLOR_TYPE = "example.com/type/color";
 
 // prettier-ignore
 const niceColors = [ "royalblue", "skyblue", "lightblue", "deepskyblue", "cadetblue", "palevioletred", "orchid", "mediumorchid", "violet", "mediumpurple", "rebeccapurple", "mediumseagreen", "seagreen", "limegreen", "palegreen", "springgreen", "darkseagreen", "olive", "darkolivegreen", "goldenrod", "darkgoldenrod", "chocolate", "saddlebrown", "firebrick", "tomato", ];
@@ -37,30 +40,30 @@ const getPositiveExclamation = () => {
 const PLUGIN_ACTION = `${PLUGIN_ID}/action`;
 
 export enum PluginAction {
-  CREATE = `${PLUGIN_ACTION}/create`,
+  // CREATE = `${PLUGIN_ACTION}/create`,
+  CREATE_LOCAL = `${PLUGIN_ACTION}/createLocal`,
 }
 
-export const objectToGraphNode = (
-  parent: Graph.Node<Space>,
-  object: Expando,
-  index: string
-): Graph.Node<Expando> => {
-  const [child] = parent.add({
-    id: object.id,
-    label: `${object.color}`,
-    icon: (props) => <Palette color={object.color} {...props} />,
-    data: object,
-    properties: {
-      index: object.meta && object.meta.index ? object.meta.index : index,
-      persistenceClass: "spaceObject",
-    },
-  });
+// export const objectToGraphNode = (
+//   parent: Graph.Node<Space>,
+//   object: Expando,
+//   index: string
+// ): Graph.Node<Expando> => {
+//   const [child] = parent.add({
+//     id: object.id,
+//     label: `${object.color}`,
+//     icon: (props) => <Palette color={object.color} {...props} />,
+//     data: object,
+//     properties: {
+//       index: object.meta && object.meta.index ? object.meta.index : index,
+//     },
+//   });
 
-  return child;
-};
+//   return child;
+// };
 
-const ColorMain: FC<{ data: Expando }> = ({ data }) => {
-  const changeColor = (object: Expando) => {
+const ColorMain: FC<{ data: Color }> = ({ data }) => {
+  const changeColor = (object: Color) => {
     object.exclaim = getPositiveExclamation();
     object.color = getRandomColor();
   };
@@ -84,68 +87,106 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
   );
 };
 
-const isColor = (object: TypedObject): boolean => {
-  return object.type === "color" && typeof object.color === "string";
+type Color = {
+  type: string;
+  color: string;
+  exclaim?: string;
+}
+
+const isColor = (object: unknown): boolean => {
+  return object &&
+    typeof object === 'object' &&
+    'type' in object &&
+    object.type === COLOR_TYPE &&
+    'color' in object &&
+    typeof object.color === "string";
 };
 
 export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
-  const adapter = new GraphNodeAdapter({
-    filter: (object: Expando) => isColor(object),
-    adapter: objectToGraphNode,
-  });
+  const state = deepSignal<{ colors: Color[] }>({ colors: [] });
+  // const adapter = new GraphNodeAdapter({
+  //   filter: (object: Expando) => isTypedObject(object) && isColor(object),
+  //   adapter: objectToGraphNode,
+  // });
 
   return {
     meta: {
       id: PLUGIN_ID,
     },
-    unload: async () => {
-      adapter.clear();
-    },
+    // unload: async () => {
+    //   adapter.clear();
+    // },
     provides: {
       translations: [
         {
           "en-US": {
             [PLUGIN_ID]: {
+              "local colors label": "Local Colors",
               "create object label": "Create a Color",
               "color title placeholder": "Color",
-              "delete object label": "Delete Color",
-              "rename object label": "Rename Color",
             },
           },
         },
       ],
       graph: {
         nodes: (parent) => {
-          if (!(parent.data instanceof SpaceProxy)) {
-            return;
+          if (parent.id === 'root') {
+            const [group] = parent.add({
+              id: 'local-colors',
+              label: ["local colors label", { ns: PLUGIN_ID }],
+              icon: (props) => <Palette {...props} />,
+            });
+
+            group.addAction({
+              id: `${PLUGIN_ID}/create-local`,
+              label: ["create object label", { ns: PLUGIN_ID }],
+              icon: (props) => <Plus {...props} />,
+              intent: [
+                {
+                  plugin: PLUGIN_ID,
+                  action: PluginAction.CREATE_LOCAL,
+                },
+                {
+                  action: TreeViewAction.ACTIVATE,
+                },
+              ],
+            });
+
+            return effect(() => {
+              state.colors.forEach((color, index) => {
+                group.add({
+                  id: String(index),
+                  label: color.color,
+                  icon: (props) => <Palette color={color.color} {...props} />,
+                  data: color,
+                })
+              });
+            })
           }
+          // else if (parent.data instanceof SpaceProxy) {
+          //   const space = parent.data;
 
-          const space = parent.data;
+          //   parent.addAction({
+          //     id: `${PLUGIN_ID}/create`,
+          //     label: ["create object label", { ns: PLUGIN_ID }],
+          //     icon: (props) => <Plus {...props} />,
+          //     intent: [
+          //       {
+          //         plugin: PLUGIN_ID,
+          //         action: PluginAction.CREATE,
+          //       },
+          //       {
+          //         action: SpaceAction.ADD_OBJECT,
+          //         data: { spaceKey: space.key.toHex() },
+          //       },
+          //       {
+          //         action: TreeViewAction.ACTIVATE,
+          //       },
+          //     ],
+          //   });
 
-          parent.addAction({
-            id: `${PLUGIN_ID}/create`,
-            label: ["create object label", { ns: PLUGIN_ID }],
-            icon: (props) => <Plus {...props} />,
-            properties: {
-              testId: "spacePlugin.createDocument",
-              disposition: "toolbar",
-            },
-            intent: [
-              {
-                plugin: PLUGIN_ID,
-                action: PluginAction.CREATE,
-              },
-              {
-                action: SpaceAction.ADD_OBJECT,
-                data: { spaceKey: space.key.toHex() },
-              },
-              {
-                action: TreeViewAction.ACTIVATE,
-              },
-            ],
-          });
-
-          return adapter?.createNodes(space, parent);
+          //   return adapter.createNodes(space, parent);
+          // }
         },
       },
       component: (data, role) => {
@@ -174,14 +215,27 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
       intent: {
         resolver: (intent) => {
           switch (intent.action) {
-            case PluginAction.CREATE:
+            // case PluginAction.CREATE:
+            //   return {
+            //     object: new Expando({
+            //       type: COLOR_TYPE,
+            //       color: getRandomColor(),
+            //       exclaim: getPositiveExclamation(),
+            //     }),
+            //   };
+
+            case PluginAction.CREATE_LOCAL: {
+              const color = {
+                type: COLOR_TYPE,
+                color: getRandomColor(),
+                exclaim: getPositiveExclamation(),
+              }
+              state.colors.push(color);
+            
               return {
-                object: new Expando({
-                  type: "color",
-                  color: getRandomColor(),
-                  exclaim: getPositiveExclamation(),
-                }),
+                object: color,
               };
+            }
           }
         },
       },
