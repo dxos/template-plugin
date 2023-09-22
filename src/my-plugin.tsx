@@ -11,7 +11,7 @@ import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
 import { TranslationsProvides } from "@braneframe/plugin-theme";
 import { TreeViewAction } from "@braneframe/plugin-treeview";
 import { Button } from "@dxos/aurora";
-import { Expando, Space, SpaceProxy, TypedObject } from "@dxos/client/echo";
+import { Expando, Space, SpaceProxy, TypedObject, isTypedObject } from "@dxos/react-client/echo";
 import { PluginDefinition } from "@dxos/react-surface";
 import { Palette, Plus } from "@phosphor-icons/react";
 import React, { FC } from "react";
@@ -155,7 +155,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
 
         switch (role) {
           case "main": {
-            if (isColor(data)) {
+            if (isTypedObject(data) && isColor(data)) {
               return ColorMain;
             }
             break;
