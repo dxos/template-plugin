@@ -5,7 +5,7 @@
 // - Handling an intent
 // - could have other functionality in it, just commented out with no additional comments to explain how it works
 
-import { Graph, GraphProvides } from "@braneframe/plugin-graph";
+import { Node, GraphProvides } from "@braneframe/plugin-graph";
 import { IntentProvides } from "@braneframe/plugin-intent";
 import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
 import { TranslationsProvides } from "@braneframe/plugin-theme";
@@ -41,11 +41,11 @@ export enum PluginAction {
 }
 
 export const objectToGraphNode = (
-  parent: Graph.Node<Space>,
+  parent: Node<Space>,
   object: Expando,
   index: string
-): Graph.Node<Expando> => {
-  const [child] = parent.add({
+): Node<Expando> => {
+  const [child] = parent.addNode(PLUGIN_ID, {
     id: object.id,
     label: `${object.color}`,
     icon: (props) => <Palette color={object.color} {...props} />,

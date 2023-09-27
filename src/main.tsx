@@ -27,11 +27,11 @@ createRoot(document.getElementById("root")!).render(
     plugins={[
       IntentPlugin(),
       ThemePlugin({ appName: "My Composer" }),
+      GraphPlugin(),
       DndPlugin(),
       // Inside theme provider so that errors are styled.
       ErrorPlugin(),
       ClientPlugin(),
-      GraphPlugin(),
       TreeViewPlugin(),
       UrlSyncPlugin(),
       SplitViewPlugin({ showComplementarySidebar: false }),
