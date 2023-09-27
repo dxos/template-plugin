@@ -10,13 +10,25 @@ import { IntentProvides } from "@braneframe/plugin-intent";
 import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
 import { TranslationsProvides } from "@braneframe/plugin-theme";
 import { TreeViewAction } from "@braneframe/plugin-treeview";
-import { Button } from "@dxos/aurora";
-import { Expando, Space, SpaceProxy, TypedObject, isTypedObject } from "@dxos/react-client/echo";
-import { PluginDefinition } from "@dxos/react-surface";
-import { Palette, Plus } from "@phosphor-icons/react";
-import React, { FC } from "react";
+import { DndPluginProvides } from "@braneframe/plugin-dnd";
 
-type MyPluginProvides = GraphProvides & IntentProvides & TranslationsProvides;
+import { Button } from "@dxos/aurora";
+import {
+  Expando,
+  Space,
+  SpaceProxy,
+  TypedObject,
+  isTypedObject,
+} from "@dxos/react-client/echo";
+import { PluginDefinition, findPlugin } from "@dxos/react-surface";
+import { CompassTool, Palette, Plus } from "@phosphor-icons/react";
+import React, { FC } from "react";
+import { StackProvides } from "@braneframe/plugin-stack";
+
+type MyPluginProvides = GraphProvides &
+  IntentProvides &
+  TranslationsProvides &
+  StackProvides;
 
 const PLUGIN_ID = "color-plugin";
 
@@ -85,7 +97,11 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
 };
 
 const isColor = (object: TypedObject): boolean => {
-  return object.type === "color" && typeof object.color === "string";
+  return (
+    isTypedObject(object) &&
+    object.type === "color" &&
+    typeof object.color === "string"
+  );
 };
 
 export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
@@ -97,6 +113,20 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
   return {
     meta: {
       id: PLUGIN_ID,
+    },
+    ready: async (plugins) => {
+      const dndPlugin = findPlugin<DndPluginProvides>(
+        plugins,
+        "dxos.org/plugin/dnd"
+      );
+      if (dndPlugin && dndPlugin.provides.dnd?.onSetTileSubscriptions) {
+        dndPlugin.provides.dnd.onSetTileSubscriptions.push((tile, node) => {
+          if (node && isColor(node.data)) {
+            tile.copyClass = (tile.copyClass ?? new Set()).add("stack-section");
+          }
+          return tile;
+        });
+      }
     },
     unload: async () => {
       adapter.clear();
@@ -148,6 +178,29 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
           return adapter?.createNodes(space, parent);
         },
       },
+      stack: {
+        creators: [
+          {
+            id: "create-stack-section-color",
+            testId: "color-plugin.createSectionSpaceColor",
+            label: ["create stack section label", { ns: PLUGIN_ID }],
+            icon: (props: any) => <CompassTool {...props} />,
+            intent: {
+              plugin: PLUGIN_ID,
+              action: PluginAction.CREATE,
+            },
+          },
+        ],
+        choosers: [
+          {
+            id: "choose-stack-section-color", // TODO(burdon): Standardize.
+            testId: "color-plugin.createSectionSpaceColor",
+            label: ["choose stack section label", { ns: PLUGIN_ID }],
+            icon: (props: any) => <CompassTool {...props} />,
+            filter: isColor,
+          },
+        ],
+      },
       component: (data, role) => {
         if (!data || typeof data !== "object") {
           return null;
@@ -160,13 +213,31 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
             }
             break;
           }
-          // Waiting on universal drag-n-drop support!
-          // case "section": {
-          //   if (isColor(data)) {
-          //     return () => <div>Color Section</div>;
-          //   }
-          //   break;
-          // }
+          case "section": {
+            if (isTypedObject(data) && isColor(data)) {
+              return () => (
+                <div
+                  style={{
+                    backgroundColor: data.color,
+                    minHeight: "100px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {data.color}
+                  </p>
+                </div>
+              );
+            }
+            break;
+          }
         }
 
         return null;
