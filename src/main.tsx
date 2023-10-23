@@ -13,10 +13,10 @@ import { SplitViewPlugin } from "@braneframe/plugin-splitview";
 import { StackPlugin } from "@braneframe/plugin-stack";
 import { ThemePlugin } from "@braneframe/plugin-theme";
 import { TreeViewPlugin } from "@braneframe/plugin-treeview";
-import { UrlSyncPlugin } from "@braneframe/plugin-url-sync";
 import { TypedObject } from "@dxos/echo-schema";
 import { PluginProvider } from "@dxos/react-surface";
 import { MyPlugin } from "./my-plugin";
+import { types } from "@braneframe/types";
 
 // TODO(wittjosiah): This ensures that typed objects are not proxied by deepsignal. Remove.
 // https://github.com/luisherranz/deepsignal/issues/36
@@ -27,14 +27,17 @@ createRoot(document.getElementById("root")!).render(
     plugins={[
       IntentPlugin(),
       ThemePlugin({ appName: "My Composer" }),
-      GraphPlugin(),
-      DndPlugin(),
       // Inside theme provider so that errors are styled.
       ErrorPlugin(),
-      ClientPlugin(),
+      GraphPlugin(),
+
+      // UX
+      DndPlugin(),
+      SplitViewPlugin(),
       TreeViewPlugin(),
-      UrlSyncPlugin(),
-      SplitViewPlugin({ showComplementarySidebar: false }),
+
+      // Data
+      ClientPlugin({ types }),
       SpacePlugin(),
       StackPlugin(),
       MyPlugin(),
