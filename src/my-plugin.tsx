@@ -9,26 +9,15 @@ import { Node, GraphProvides } from "@braneframe/plugin-graph";
 import { IntentProvides } from "@braneframe/plugin-intent";
 import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
 import { TranslationsProvides } from "@braneframe/plugin-theme";
-import { TreeViewAction } from "@braneframe/plugin-treeview";
-import { DndPluginProvides } from "@braneframe/plugin-dnd";
-
-import { Button } from "@dxos/aurora";
-import {
-  Expando,
-  Space,
-  SpaceProxy,
-  TypedObject,
-  isTypedObject,
-} from "@dxos/react-client/echo";
-import { PluginDefinition, findPlugin } from "@dxos/react-surface";
+import { SplitViewAction } from "@braneframe/plugin-splitview";
+import { Expando, Space, SpaceProxy, TypedObject, isTypedObject } from "@dxos/react-client/echo";
+import { PluginDefinition } from "@dxos/react-surface";
+import { Button } from "@dxos/react-ui";
 import { CompassTool, Palette, Plus } from "@phosphor-icons/react";
 import React, { FC } from "react";
 import { StackProvides } from "@braneframe/plugin-stack";
 
-type MyPluginProvides = GraphProvides &
-  IntentProvides &
-  TranslationsProvides &
-  StackProvides;
+type MyPluginProvides = GraphProvides & IntentProvides & TranslationsProvides & StackProvides;
 
 const PLUGIN_ID = "color-plugin";
 
@@ -96,6 +85,29 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
   );
 };
 
+const ColorSection: FC<{ data: Expando }> = ({ data }) => {
+  return (
+    <div
+      style={{
+        backgroundColor: data.color,
+        minHeight: "100px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <p
+        style={{
+          textAlign: "center",
+          verticalAlign: "middle",
+        }}
+      >
+        {data.color}
+      </p>
+    </div>
+  );
+};
+
 const isColor = (object: TypedObject): boolean => {
   return (
     isTypedObject(object) &&
@@ -113,20 +125,6 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
   return {
     meta: {
       id: PLUGIN_ID,
-    },
-    ready: async (plugins) => {
-      const dndPlugin = findPlugin<DndPluginProvides>(
-        plugins,
-        "dxos.org/plugin/dnd"
-      );
-      if (dndPlugin && dndPlugin.provides.dnd?.onSetTileSubscriptions) {
-        dndPlugin.provides.dnd.onSetTileSubscriptions.push((tile, node) => {
-          if (node && isColor(node.data)) {
-            tile.copyClass = (tile.copyClass ?? new Set()).add("stack-section");
-          }
-          return tile;
-        });
-      }
     },
     unload: async () => {
       adapter.clear();
@@ -170,7 +168,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
                 data: { spaceKey: space.key.toHex() },
               },
               {
-                action: TreeViewAction.ACTIVATE,
+                action: SplitViewAction.ACTIVATE,
               },
             ],
           });
@@ -191,15 +189,6 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
             },
           },
         ],
-        choosers: [
-          {
-            id: "choose-stack-section-color", // TODO(burdon): Standardize.
-            testId: "color-plugin.createSectionSpaceColor",
-            label: ["choose stack section label", { ns: PLUGIN_ID }],
-            icon: (props: any) => <CompassTool {...props} />,
-            filter: isColor,
-          },
-        ],
       },
       component: (data, role) => {
         if (!data || typeof data !== "object") {
@@ -215,26 +204,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
           }
           case "section": {
             if (isTypedObject(data) && isColor(data)) {
-              return () => (
-                <div
-                  style={{
-                    backgroundColor: data.color,
-                    minHeight: "100px",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <p
-                    style={{
-                      textAlign: "center",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {data.color}
-                  </p>
-                </div>
-              );
+              return ColorSection 
             }
             break;
           }
