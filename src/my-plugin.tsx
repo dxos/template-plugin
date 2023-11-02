@@ -5,19 +5,34 @@
 // - Handling an intent
 // - could have other functionality in it, just commented out with no additional comments to explain how it works
 
-import { Node, GraphProvides } from "@braneframe/plugin-graph";
-import { IntentProvides } from "@braneframe/plugin-intent";
-import { GraphNodeAdapter, SpaceAction } from "@braneframe/plugin-space";
-import { TranslationsProvides } from "@braneframe/plugin-theme";
-import { SplitViewAction } from "@braneframe/plugin-splitview";
-import { Expando, Space, SpaceProxy, TypedObject, isTypedObject } from "@dxos/react-client/echo";
-import { PluginDefinition } from "@dxos/react-surface";
-import { Button } from "@dxos/react-ui";
-import { CompassTool, Palette, Plus } from "@phosphor-icons/react";
+import { CompassTool, Palette } from "@phosphor-icons/react";
+import { effect } from "@preact/signals-react";
 import React, { FC } from "react";
-import { StackProvides } from "@braneframe/plugin-stack";
 
-type MyPluginProvides = GraphProvides & IntentProvides & TranslationsProvides & StackProvides;
+import { SPACE_PLUGIN, SpaceAction } from "@braneframe/plugin-space";
+import { StackProvides } from "@braneframe/plugin-stack";
+import { Folder } from "@braneframe/types";
+import {
+  GraphBuilderProvides,
+  IntentResolverProvides,
+  LayoutAction,
+  MetadataRecordsProvides,
+  parseIntentPlugin,
+  PluginDefinition,
+  resolvePlugin,
+  SurfaceProvides,
+  TranslationsProvides,
+} from "@dxos/app-framework";
+import { Expando, TypedObject, isTypedObject } from "@dxos/react-client/echo";
+import { Button } from "@dxos/react-ui";
+
+type MyPluginProvides =
+  SurfaceProvides &
+  IntentResolverProvides &
+  GraphBuilderProvides &
+  MetadataRecordsProvides &
+  TranslationsProvides &
+  StackProvides;
 
 const PLUGIN_ID = "color-plugin";
 
@@ -41,26 +56,7 @@ export enum PluginAction {
   CREATE = `${PLUGIN_ACTION}/create`,
 }
 
-export const objectToGraphNode = (
-  parent: Node<Space>,
-  object: Expando,
-  index: string
-): Node<Expando> => {
-  const [child] = parent.addNode(PLUGIN_ID, {
-    id: object.id,
-    label: `${object.color}`,
-    icon: (props) => <Palette color={object.color} {...props} />,
-    data: object,
-    properties: {
-      index: object.meta && object.meta.index ? object.meta.index : index,
-      persistenceClass: "spaceObject",
-    },
-  });
-
-  return child;
-};
-
-const ColorMain: FC<{ data: Expando }> = ({ data }) => {
+const ColorMain: FC<{ object: Expando }> = ({ object }) => {
   const changeColor = (object: Expando) => {
     object.exclaim = getPositiveExclamation();
     object.color = getRandomColor();
@@ -69,7 +65,7 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
   return (
     <div
       style={{
-        backgroundColor: data.color,
+        backgroundColor: object.color,
         height: "100vh",
         width: "100%",
         display: "flex",
@@ -78,18 +74,18 @@ const ColorMain: FC<{ data: Expando }> = ({ data }) => {
       }}
     >
       <div style={{ textAlign: "center" }}>
-        {data.exclaim && <p style={{ fontSize: "10vw" }}>{data.exclaim}</p>}
-        <Button onClick={() => changeColor(data)}>Roll this color!</Button>
+        {object.exclaim && <p style={{ fontSize: "10vw" }}>{object.exclaim}</p>}
+        <Button onClick={() => changeColor(object)}>Roll this color!</Button>
       </div>
     </div>
   );
 };
 
-const ColorSection: FC<{ data: Expando }> = ({ data }) => {
+const ColorSection: FC<{ object: Expando }> = ({ object }) => {
   return (
     <div
       style={{
-        backgroundColor: data.color,
+        backgroundColor: object.color,
         minHeight: "100px",
         display: "flex",
         justifyContent: "center",
@@ -102,34 +98,36 @@ const ColorSection: FC<{ data: Expando }> = ({ data }) => {
           verticalAlign: "middle",
         }}
       >
-        {data.color}
+        {object.color}
       </p>
     </div>
   );
 };
 
+const TYPE = "color";
+
 const isColor = (object: TypedObject): boolean => {
   return (
     isTypedObject(object) &&
-    object.type === "color" &&
+    object.type === TYPE &&
     typeof object.color === "string"
   );
 };
 
 export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
-  const adapter = new GraphNodeAdapter({
-    filter: (object: Expando) => isColor(object),
-    adapter: objectToGraphNode,
-  });
-
   return {
     meta: {
       id: PLUGIN_ID,
     },
-    unload: async () => {
-      adapter.clear();
-    },
     provides: {
+      metadata: {
+        records: {
+          [TYPE]: {
+            placeholder: ["color title placeholder", { ns: PLUGIN_ID }],
+            icon: (props) => <Palette {...props} />,
+          }
+        }
+      },
       translations: [
         {
           "en-US": {
@@ -143,37 +141,37 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
         },
       ],
       graph: {
-        nodes: (parent) => {
-          if (!(parent.data instanceof SpaceProxy)) {
-            return;
+        builder: ({ parent, plugins }) => {
+          if (parent.data instanceof Folder) {
+            const intentPlugin = resolvePlugin(plugins, parseIntentPlugin);
+
+            parent.actionsMap[`${SPACE_PLUGIN}/create`]?.addAction({
+              id: `${PLUGIN_ID}/create`,
+              label: ["create object label", { ns: PLUGIN_ID }],
+              icon: (props) => <Palette {...props} />,
+              properties: {
+                testId: "spacePlugin.createDocument",
+                disposition: "toolbar",
+              },
+              invoke: () => intentPlugin.provides.intent.dispatch([
+                {
+                  plugin: PLUGIN_ID,
+                  action: PluginAction.CREATE,
+                },
+                {
+                  action: SpaceAction.ADD_TO_FOLDER,
+                  data: { folder: parent.data },
+                },
+                {
+                  action: LayoutAction.ACTIVATE,
+                },
+              ]),
+            });
+          } else if (isTypedObject(parent.data) && isColor(parent.data)) {
+            return effect(() => {
+              parent.label = parent.data.color || ["color title placeholder", { ns: PLUGIN_ID }];
+            });
           }
-
-          const space = parent.data;
-
-          parent.addAction({
-            id: `${PLUGIN_ID}/create`,
-            label: ["create object label", { ns: PLUGIN_ID }],
-            icon: (props) => <Plus {...props} />,
-            properties: {
-              testId: "spacePlugin.createDocument",
-              disposition: "toolbar",
-            },
-            intent: [
-              {
-                plugin: PLUGIN_ID,
-                action: PluginAction.CREATE,
-              },
-              {
-                action: SpaceAction.ADD_OBJECT,
-                data: { spaceKey: space.key.toHex() },
-              },
-              {
-                action: SplitViewAction.ACTIVATE,
-              },
-            ],
-          });
-
-          return adapter?.createNodes(space, parent);
         },
       },
       stack: {
@@ -190,27 +188,18 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
           },
         ],
       },
-      component: (data, role) => {
-        if (!data || typeof data !== "object") {
+      surface: {
+        component: (data, role) => {
+          switch (role) {
+            case "main":
+              return isTypedObject(data.active) && isColor(data.active) ? <ColorMain object={data.active} /> : null;
+    
+            case "section":
+              return isTypedObject(data.object) && isColor(data.object) ? <ColorSection object={data.object} /> : null;
+          }
+
           return null;
-        }
-
-        switch (role) {
-          case "main": {
-            if (isTypedObject(data) && isColor(data)) {
-              return ColorMain;
-            }
-            break;
-          }
-          case "section": {
-            if (isTypedObject(data) && isColor(data)) {
-              return ColorSection 
-            }
-            break;
-          }
-        }
-
-        return null;
+        },
       },
       intent: {
         resolver: (intent) => {
