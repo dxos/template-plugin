@@ -4,17 +4,16 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 
 import { ClientPlugin } from "@braneframe/plugin-client";
-import { DndPlugin } from "@braneframe/plugin-dnd";
 import { ErrorPlugin } from "@braneframe/plugin-error";
 import { GraphPlugin } from "@braneframe/plugin-graph";
-import { IntentPlugin } from "@braneframe/plugin-intent";
+import { LayoutPlugin } from "@braneframe/plugin-layout";
+import { MetadataPlugin } from "@braneframe/plugin-metadata";
+import { NavTreePlugin } from "@braneframe/plugin-navtree";
 import { SpacePlugin } from "@braneframe/plugin-space";
-import { SplitViewPlugin } from "@braneframe/plugin-splitview";
 import { StackPlugin } from "@braneframe/plugin-stack";
 import { ThemePlugin } from "@braneframe/plugin-theme";
-import { TreeViewPlugin } from "@braneframe/plugin-treeview";
 import { TypedObject } from "@dxos/echo-schema";
-import { PluginProvider } from "@dxos/react-surface";
+import { createApp } from "@dxos/app-framework";
 import { MyPlugin } from "./my-plugin";
 import { types } from "@braneframe/types";
 
@@ -22,25 +21,22 @@ import { types } from "@braneframe/types";
 // https://github.com/luisherranz/deepsignal/issues/36
 (globalThis as any)[TypedObject.name] = TypedObject;
 
-createRoot(document.getElementById("root")!).render(
-  <PluginProvider
-    plugins={[
-      IntentPlugin(),
-      ThemePlugin({ appName: "My Composer" }),
-      // Inside theme provider so that errors are styled.
-      ErrorPlugin(),
-      GraphPlugin(),
+const App = createApp({ plugins: [
+  ThemePlugin({ appName: "My Composer" }),
+  // Inside theme provider so that errors are styled.
+  ErrorPlugin(),
+  GraphPlugin(),
+  MetadataPlugin(),
 
-      // UX
-      DndPlugin(),
-      SplitViewPlugin(),
-      TreeViewPlugin(),
+  // UX
+  LayoutPlugin(),
+  NavTreePlugin(),
 
-      // Data
-      ClientPlugin({ types }),
-      SpacePlugin(),
-      StackPlugin(),
-      MyPlugin(),
-    ]}
-  />
-);
+  // Data
+  ClientPlugin({ appKey: 'schrodie.dxos.network', types }),
+  SpacePlugin(),
+  StackPlugin(),
+  MyPlugin(),
+]});
+
+createRoot(document.getElementById("root")!).render(<App />);
