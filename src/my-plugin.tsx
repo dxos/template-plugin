@@ -1,11 +1,4 @@
-//Base Plugins could have:
-// - Adding an object to the graph
-// - Providing a component to a surface
-// - Throwing an intent
-// - Handling an intent
-// - could have other functionality in it, just commented out with no additional comments to explain how it works
-
-import { CompassTool, Palette } from "@phosphor-icons/react";
+import { CompassTool, IconProps, Palette } from "@phosphor-icons/react";
 import { effect } from "@preact/signals-react";
 import React, { FC } from "react";
 
@@ -26,35 +19,23 @@ import {
 import { Expando, TypedObject, isTypedObject } from "@dxos/react-client/echo";
 import { Button } from "@dxos/react-ui";
 
-type MyPluginProvides =
-  SurfaceProvides &
-  IntentResolverProvides &
-  GraphBuilderProvides &
-  MetadataRecordsProvides &
-  TranslationsProvides &
-  StackProvides;
-
-const PLUGIN_ID = "color-plugin";
+// --- View -------------------------------------------------------------------
 
 // prettier-ignore
 const niceColors = [ "royalblue", "skyblue", "lightblue", "deepskyblue", "cadetblue", "palevioletred", "orchid", "mediumorchid", "violet", "mediumpurple", "rebeccapurple", "mediumseagreen", "seagreen", "limegreen", "palegreen", "springgreen", "darkseagreen", "olive", "darkolivegreen", "goldenrod", "darkgoldenrod", "chocolate", "saddlebrown", "firebrick", "tomato", ];
+
 const getRandomColor = () => {
   return niceColors[Math.floor(Math.random() * niceColors.length)];
 };
 
 // prettier-ignore
 const positiveExclamations = [ "Fantastic!", "Well done!", "Great job!", "Outstanding!", "Impressive!", "Bravo!", "Excellent!", "Superb!", "Amazing!", "Incredible!", ];
+
 const getPositiveExclamation = () => {
   return positiveExclamations[
     Math.floor(Math.random() * positiveExclamations.length)
   ];
 };
-
-const PLUGIN_ACTION = `${PLUGIN_ID}/action`;
-
-export enum PluginAction {
-  CREATE = `${PLUGIN_ACTION}/create`,
-}
 
 const ColorMain: FC<{ object: Expando }> = ({ object }) => {
   const changeColor = (object: Expando) => {
@@ -67,7 +48,6 @@ const ColorMain: FC<{ object: Expando }> = ({ object }) => {
       style={{
         backgroundColor: object.color,
         height: "100vh",
-        width: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -87,6 +67,7 @@ const ColorSection: FC<{ object: Expando }> = ({ object }) => {
       style={{
         backgroundColor: object.color,
         minHeight: "100px",
+        width: "100%",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -104,6 +85,7 @@ const ColorSection: FC<{ object: Expando }> = ({ object }) => {
   );
 };
 
+// --- Helpers ----------------------------------------------------------------
 const TYPE = "color";
 
 const isColor = (object: TypedObject): boolean => {
@@ -114,19 +96,39 @@ const isColor = (object: TypedObject): boolean => {
   );
 };
 
-export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
+// --- Plugin Definition ------------------------------------------------------
+type MyPluginProvides = SurfaceProvides &
+  IntentResolverProvides &
+  GraphBuilderProvides &
+  MetadataRecordsProvides &
+  TranslationsProvides &
+  StackProvides;
+
+const PLUGIN_ID = "/color-plugin";
+
+export const MyPluginMeta = {
+  id: PLUGIN_ID,
+  name: "Color Plugin",
+  iconComponent: (props: IconProps) => <Palette {...props} />,
+};
+
+const PLUGIN_ACTION_NAME = `${PLUGIN_ID}/action`;
+
+export enum MyPluginAction {
+  CREATE = `${PLUGIN_ACTION_NAME}/create`,
+}
+
+export default function MyPlugin(): PluginDefinition<MyPluginProvides> {
   return {
-    meta: {
-      id: PLUGIN_ID,
-    },
+    meta: MyPluginMeta,
     provides: {
       metadata: {
         records: {
           [TYPE]: {
             placeholder: ["color title placeholder", { ns: PLUGIN_ID }],
             icon: (props) => <Palette {...props} />,
-          }
-        }
+          },
+        },
       },
       translations: [
         {
@@ -136,6 +138,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
               "color title placeholder": "Color",
               "delete object label": "Delete Color",
               "rename object label": "Rename Color",
+              "create stack section label": "Create a Color",
             },
           },
         },
@@ -153,23 +156,27 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
                 testId: "spacePlugin.createDocument",
                 disposition: "toolbar",
               },
-              invoke: () => intentPlugin.provides.intent.dispatch([
-                {
-                  plugin: PLUGIN_ID,
-                  action: PluginAction.CREATE,
-                },
-                {
-                  action: SpaceAction.ADD_TO_FOLDER,
-                  data: { folder: parent.data },
-                },
-                {
-                  action: LayoutAction.ACTIVATE,
-                },
-              ]),
+              invoke: () =>
+                intentPlugin.provides.intent.dispatch([
+                  {
+                    plugin: PLUGIN_ID,
+                    action: MyPluginAction.CREATE,
+                  },
+                  {
+                    action: SpaceAction.ADD_OBJECT,
+                    data: { target: parent.data },
+                  },
+                  {
+                    action: LayoutAction.ACTIVATE,
+                  },
+                ]),
             });
           } else if (isTypedObject(parent.data) && isColor(parent.data)) {
             return effect(() => {
-              parent.label = parent.data.color || ["color title placeholder", { ns: PLUGIN_ID }];
+              parent.label = parent.data.color || [
+                "color title placeholder",
+                { ns: PLUGIN_ID },
+              ];
             });
           }
         },
@@ -183,19 +190,23 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
             icon: (props: any) => <CompassTool {...props} />,
             intent: {
               plugin: PLUGIN_ID,
-              action: PluginAction.CREATE,
+              action: MyPluginAction.CREATE,
             },
           },
         ],
       },
       surface: {
-        component: (data, role) => {
+        component: ({ data, role }) => {
           switch (role) {
             case "main":
-              return isTypedObject(data.active) && isColor(data.active) ? <ColorMain object={data.active} /> : null;
-    
+              return isTypedObject(data.active) && isColor(data.active) ? (
+                <ColorMain object={data.active} />
+              ) : null;
+
             case "section":
-              return isTypedObject(data.object) && isColor(data.object) ? <ColorSection object={data.object} /> : null;
+              return isTypedObject(data.object) && isColor(data.object) ? (
+                <ColorSection object={data.object} />
+              ) : null;
           }
 
           return null;
@@ -204,7 +215,7 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
       intent: {
         resolver: (intent) => {
           switch (intent.action) {
-            case PluginAction.CREATE:
+            case MyPluginAction.CREATE:
               return {
                 object: new Expando({
                   type: "color",
@@ -217,4 +228,4 @@ export const MyPlugin = (): PluginDefinition<MyPluginProvides> => {
       },
     },
   };
-};
+}
